@@ -15,6 +15,7 @@ namespace sLYNCy_WPF
         //VARIABLES
         private Task t;
         private List<string> preparedUsernames;
+        private List<string> preparedPasswords;
         public object pause = new object();
         public bool paused = false;
         public bool resume = false;
@@ -66,7 +67,7 @@ namespace sLYNCy_WPF
             }
         }
 
-        public void SprayUsers(PasswordSprayType method, string filepath, string formatChoice, string password, MainWindow UI, UsernameFormat discoveredFormat, Hostnames host, MicrosoftService service, string MSISSamlRequest)
+        public void SprayUsers(PasswordSprayType method, string filepath, string passwordfilepath, string formatChoice, string password, string sleepInterval, MainWindow UI, UsernameFormat discoveredFormat, Hostnames host, MicrosoftService service, string MSISSamlRequest)
         {
             earlierVersionOnce = 0;
             laterVersionOnce = 0;
@@ -81,6 +82,7 @@ namespace sLYNCy_WPF
             {
                 UI.lockUI(SendingWindow.PasswordSpray);
                 preparedUsernames = new List<string>();
+                preparedPasswords = new List<string>();
 
 
                     if (host.SprayURL != null)
@@ -108,6 +110,10 @@ namespace sLYNCy_WPF
                                     break;
                                 case PasswordSprayType.UsernameListFile:
                                     preparedUsernames = UsernamePreperation.PrepareUsernames(UsernamePreperation.LoadUsernames(UsernameFileFormat.File, filepath, UI, null), host, UI, SendingWindow.UserEnum, method);
+                                    break;
+                                case PasswordSprayType.UsernamePasswordListFile:
+                                    preparedUsernames = UsernamePreperation.PrepareUsernames(UsernamePreperation.LoadUsernames(UsernameFileFormat.File, filepath, UI, null), host, UI, SendingWindow.UserEnum, method);
+                                    preparedPasswords = Helper.PasswordPreparation.LoadPasswords(passwordfilepath, UI);
                                     break;
                                 case PasswordSprayType.UsernameListService:
                                     preparedUsernames = UsernamePreperation.PrepareUsernames(UsernamePreperation.LoadUsernames(UsernameFileFormat.InBuilt, "sLYNCy_WPF.Helper.Usernames.UsernamesInBuilt.service-accounts.txt", UI, null), host, UI, SendingWindow.UserEnum, method);
@@ -144,6 +150,10 @@ namespace sLYNCy_WPF
                                     break;
                                 case PasswordSprayType.UsernameListFile:
                                     preparedUsernames = UsernamePreperation.PrepareUsernames(UsernamePreperation.LoadUsernames(UsernameFileFormat.File, filepath, UI, null), host, UI, SendingWindow.PasswordSpray, method);
+                                    break;
+                                case PasswordSprayType.UsernamePasswordListFile:
+                                    preparedUsernames = UsernamePreperation.PrepareUsernames(UsernamePreperation.LoadUsernames(UsernameFileFormat.File, filepath, UI, null), host, UI, SendingWindow.PasswordSpray, method);
+                                    preparedPasswords = Helper.PasswordPreparation.LoadPasswords(passwordfilepath, UI);
                                     break;
                                 case PasswordSprayType.UsernameListService:
                                     preparedUsernames = UsernamePreperation.PrepareUsernames(UsernamePreperation.LoadUsernames(UsernameFileFormat.InBuilt, "sLYNCy_WPF.Helper.Usernames.UsernamesInBuilt.service-accounts.txt", UI, null), host, UI, SendingWindow.PasswordSpray, method);
@@ -182,6 +192,10 @@ namespace sLYNCy_WPF
                             case PasswordSprayType.UsernameListFile:
                                 preparedUsernames = UsernamePreperation.PrepareUsernames(UsernamePreperation.LoadUsernames(UsernameFileFormat.File, filepath, UI, null), host, UI, SendingWindow.PasswordSpray, method);
                                 break;
+                            case PasswordSprayType.UsernamePasswordListFile:
+                                preparedUsernames = UsernamePreperation.PrepareUsernames(UsernamePreperation.LoadUsernames(UsernameFileFormat.File, filepath, UI, null), host, UI, SendingWindow.UserEnum, method);
+                                preparedPasswords = Helper.PasswordPreparation.LoadPasswords(passwordfilepath, UI);
+                                break;
                             case PasswordSprayType.UsernameListService:
                                 preparedUsernames = UsernamePreperation.PrepareUsernames(UsernamePreperation.LoadUsernames(UsernameFileFormat.InBuilt, "sLYNCy_WPF.Helper.Usernames.UsernamesInBuilt.service-accounts.txt", UI, null), host, UI, SendingWindow.PasswordSpray, method);
                                 break;
@@ -196,19 +210,30 @@ namespace sLYNCy_WPF
 
                     }
 
-
-
-
-
-
                 if (preparedUsernames.Count > 0)
                 {
-                    UI.ThreadSafeAppendLog("[2] Usernames to spray: " + preparedUsernames.Count);
-                    MainWindow.setTotalUsernames(preparedUsernames.Count);
-                    MainWindow.setUsernamesDone(0);
-                    UI.counter.startUpdate(SendingWindow.PasswordSpray, UI);
-                    //Switch on service and prepare requests how we need - send to validate - and do add record etc as necessary
-                    Spray(preparedUsernames, password, UI, host, service, MSISSamlRequest);
+               
+                    if(preparedPasswords.Count > 0)
+                    {
+                            UI.ThreadSafeAppendLog("[2] Usernames to spray: " + preparedUsernames.Count * preparedPasswords.Count);
+                            MainWindow.setTotalUsernames(preparedUsernames.Count * preparedPasswords.Count);
+                            MainWindow.setUsernamesDone(0);
+                            UI.counter.startUpdate(SendingWindow.PasswordSpray, UI);
+                            //Switch on service and prepare requests how we need - send to validate - and do add record etc as necessary
+
+                            Spray(preparedUsernames, preparedPasswords, UI, host, service, MSISSamlRequest, sleepInterval);
+                    }
+                    else
+                    {
+                            UI.ThreadSafeAppendLog("[2] Usernames to spray: " + preparedUsernames.Count);
+                            MainWindow.setTotalUsernames(preparedUsernames.Count);
+                            MainWindow.setUsernamesDone(0);
+                            UI.counter.startUpdate(SendingWindow.PasswordSpray, UI);
+                            //Switch on service and prepare requests how we need - send to validate - and do add record etc as necessary
+
+                            Spray(preparedUsernames, password, UI, host, service, MSISSamlRequest);
+                    }
+                    
                     //Maybe use same "validate" and add bits for right user AND pass - no timing - then maybe add to addRecord record with pass
                 }
                 else
@@ -238,6 +263,42 @@ namespace sLYNCy_WPF
             } else
             {
                 UI.ThreadSafeAppendLog("[1]No users to spray...");
+            }
+        }
+
+        public async void Spray(List<string> usernames, List<string> passwords, MainWindow UI, Hostnames host, MicrosoftService service, string MSISSamlRequest, string sleepinterval)
+        {
+            if (passwords.Count > 0)
+            {            
+                if (usernames.Count > 0)
+                {
+                    List<Task> listOfSprayTasks = new List<Task>();
+
+                    foreach (string password in passwords)
+                    { 
+
+                        foreach (string username in preparedUsernames)
+                        {
+
+                            listOfSprayTasks.Add(DoAsync(username, pause, killSwitch, service, UI, password, host, MSISSamlRequest));
+                        }
+                        if(sleepinterval.Length > 0)
+                        {
+                            UI.ThreadSafeAppendLog("[1] Sleeping for " + sleepinterval + " seconds.");
+                            System.Threading.Thread.Sleep(Int32.Parse(sleepinterval)*1000);
+                        }
+                    }
+                    await Task.WhenAll(listOfSprayTasks);
+                    UI.unlockUI();
+                }
+                else
+                {
+                    UI.ThreadSafeAppendLog("[1]No users to spray...");
+                }
+            }
+            else
+            {
+                UI.ThreadSafeAppendLog("[1]No passwords to spray...");
             }
         }
 

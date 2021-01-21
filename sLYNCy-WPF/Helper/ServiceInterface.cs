@@ -95,7 +95,7 @@ namespace sLYNCy_WPF
             enumerator.EnumerateUsers(method, filepath, isChecked, formatChoice, startingPointName, service, MSISSamlRequest, UI, host, password);
         }
 
-        public void SprayUsers(PasswordSprayType method, string filepath, string formatChoice, string password, UsernameFormat discoveredFormat)
+        public void SprayUsers(PasswordSprayType method, string filepath, string passwordfilepath, string formatChoice, string password, string sleepInterval, UsernameFormat discoveredFormat)
         {
             if (service == MicrosoftService.ADFS && MSISSamlRequest == "")
             {
@@ -105,7 +105,7 @@ namespace sLYNCy_WPF
             {
                 UI.ThreadSafeAppendLog("[3]Using existing SAML data...");
             }
-            sprayer.SprayUsers(method, filepath, formatChoice, password, UI, discoveredFormat, host, service, MSISSamlRequest);
+            sprayer.SprayUsers(method, filepath, passwordfilepath, formatChoice, password, sleepInterval, UI, discoveredFormat, host, service, MSISSamlRequest);
         }
 
         private void GetMSISSamlRequest()

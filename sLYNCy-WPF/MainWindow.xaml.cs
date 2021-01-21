@@ -150,6 +150,7 @@ namespace sLYNCy_WPF
         public List<string> usernames_jsmith;
         public List<string> usernames_smithj;
         public List<string> usernames;
+        public List<string> passwords;
         public List<string> usernamesToTest;
         public string loggingDirectory;
         public CounterUpdate counter = new CounterUpdate();
@@ -406,6 +407,7 @@ namespace sLYNCy_WPF
                         EnumeratedUsersCheckboxSpray.IsEnabled = false;
                         PassLabelSpray.IsEnabled = false;
                         PasswordFromSpray.IsEnabled = false;
+                        SleepIntervalText.IsEnabled = true;
                         break;
                     case SendingWindow.MeetingSnooper:
                         MeetingSnoop.IsEnabled = false;
@@ -549,6 +551,7 @@ namespace sLYNCy_WPF
                     }
                     PassLabelSpray.IsEnabled = true;
                     PasswordFromSpray.IsEnabled = true;
+                    SleepIntervalText.IsEnabled = true;
                     if (GetDoWeHaveAnyDiscoveredFormat())
                         UseDiscoveredFormat.IsEnabled = true;
                     UseChosenFormat.IsEnabled = true;
@@ -1555,6 +1558,22 @@ namespace sLYNCy_WPF
             }
         }
 
+        private void PasswordListCheckboxSpray_Click(object sender, RoutedEventArgs e)
+        {
+            if (PasswordListCheckboxSpray.IsChecked == true)
+            {
+                UseDiscoveredFormat.IsChecked = false;
+                UseChosenFormat.IsChecked = false;
+                EnumeratedUsersCheckboxSpray.IsChecked = false;
+
+                UsernameListBoxSpray.IsEnabled = true;
+                ChoosePrebuiltSpray.IsEnabled = true;
+                ChoosePasswordListSpray.IsEnabled = true;
+
+                ChosenFormatSpray.IsEnabled = false;
+            }
+        }
+
         private void EnumeratedUsersCheckboxSpray_Click(object sender, RoutedEventArgs e)
         {
             if (EnumeratedUsersCheckboxSpray.IsChecked == true)
@@ -1621,8 +1640,10 @@ namespace sLYNCy_WPF
                 method = PasswordSprayType.UsernameListService;
             else if (UsernameListCheckboxSpray.IsChecked == true && ChooseStandardsSpray.IsChecked == true)
                 method = PasswordSprayType.UsernameListStandard;
-            else if (UsernameListCheckboxSpray.IsChecked == true && ChooseStandardsSpray.IsChecked == false && ChooseServiceSpray.IsChecked == false && ChooseCouncilSpray.IsChecked == false)
+            else if (UsernameListCheckboxSpray.IsChecked == true && ChooseStandardsSpray.IsChecked == false && ChooseServiceSpray.IsChecked == false && ChooseCouncilSpray.IsChecked == false && PasswordListCheckboxSpray.IsChecked == false)
                 method = PasswordSprayType.UsernameListFile;
+            else if (UsernameListCheckboxSpray.IsChecked == true && PasswordListCheckboxSpray.IsChecked == true && ChooseStandardsSpray.IsChecked == false && ChooseServiceSpray.IsChecked == false && ChooseCouncilSpray.IsChecked == false)
+                method = PasswordSprayType.UsernamePasswordListFile;
             else if (EnumeratedUsersCheckboxSpray.IsChecked == true)
                 method = PasswordSprayType.EnumeratedUsers;
 
@@ -1635,7 +1656,15 @@ namespace sLYNCy_WPF
                 ThreadSafeAppendLog("[3]Selecting existing service interface...");
                 ServiceInterface serviceInterface = (serviceInterfaces.Where(x => x.service == service)).First();
                 //So we have a service interface for the service - now check if it has a sprayer:
-                serviceInterface.SprayUsers(method, UsernameListBoxSpray.Text, ChosenFormatSpray.Text, PasswordFromSpray.Text, discoveredFormat);
+                if(PasswordListBoxSpray.Text.Length > 0)
+                {
+                    serviceInterface.SprayUsers(method, UsernameListBoxSpray.Text, PasswordListBoxSpray.Text, ChosenFormatSpray.Text, PasswordFromSpray.Text, SleepIntervalText.Text, discoveredFormat);
+                }
+                else
+                {
+                    serviceInterface.SprayUsers(method, UsernameListBoxSpray.Text, null, ChosenFormatSpray.Text, PasswordFromSpray.Text, SleepIntervalText.Text, discoveredFormat);
+                }
+                
             }
             else
             {
@@ -1652,7 +1681,14 @@ namespace sLYNCy_WPF
                 ThreadSafeAppendLog("[3]Adding new service interface with service: " + service);
                 ServiceInterface serviceInterface = new ServiceInterface() { service = service, UI = this, host = sprayerHostname, enumerator = new UsernameEnumeration(), sprayer = new PasswordSpray(), postCompromise = new PostCompromise() { UI = this } };
                 serviceInterfaces.Add(serviceInterface);
-                serviceInterface.SprayUsers(method, UsernameListBoxSpray.Text, ChosenFormatSpray.Text, PasswordFromSpray.Text, discoveredFormat);
+                if (PasswordListBoxSpray.Text.Length > 0)
+                {
+                    serviceInterface.SprayUsers(method, UsernameListBoxSpray.Text, PasswordListBoxSpray.Text, ChosenFormatSpray.Text, PasswordFromSpray.Text, SleepIntervalText.Text ,discoveredFormat);
+                }
+                else
+                {
+                    serviceInterface.SprayUsers(method, UsernameListBoxSpray.Text, null, ChosenFormatSpray.Text, PasswordFromSpray.Text, SleepIntervalText.Text, discoveredFormat);
+                }
             }
 
         }
@@ -1831,6 +1867,15 @@ namespace sLYNCy_WPF
             ChooseServiceSpray.IsChecked = false;
             ChooseStandardsSpray.IsChecked = false;
             UsernameListBoxSpray.Text = openFileDialog.FileName;
+        }
+
+        private void ChoosePasswordListSpray_Click(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+            if (openFileDialog.ShowDialog() != true)
+                return;
+
+            PasswordListBoxSpray.Text = openFileDialog.FileName;
         }
 
 

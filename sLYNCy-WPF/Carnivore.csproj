@@ -98,6 +98,7 @@
     <Compile Include="Helper\AddCredentialRecord.cs" />
     <Compile Include="Helper\AddDataRecord.cs" />
     <Compile Include="Helper\AddMeetingsObject.cs" />
+    <Compile Include="Helper\PasswordPreparation.cs" />
     <Compile Include="Helper\CredentialsRecord.cs" />
     <Compile Include="Helper\PostCredsHelper.cs" />
     <Compile Include="Helper\ServiceInterface.cs" />

@@ -98,6 +98,7 @@
             UsernameListService,
             UsernameListStandard,
             UsernameListFile,
+            UsernamePasswordListFile,
             EnumeratedUsers,
             nullMethod
         }
